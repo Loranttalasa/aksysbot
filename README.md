@@ -26,9 +26,6 @@ Free news monitoring for **Aksys Games** and **Otomate (Japan)**, posted to a Di
 
 The workflow needs permission to push `state.json`. Under **Settings → Actions → General → Workflow permissions**, allow write permissions if necessary. Branch protection rules may also block that push.
 
-## Costs
-
-No API fee, no continuously running machine. GitHub Free currently includes **2,000 Actions minutes per month** for private repositories; usage beyond allowances can incur charges depending on account billing configuration. Approx. 240 runs per month at three-hour intervals. Keep an eye on GitHub **Settings → Billing** and workflow execution duration. An offline Japanese translation model downloads when the first new Japanese announcement is detected; the cache helps subsequent runs.
 
 ## Limitations
 
