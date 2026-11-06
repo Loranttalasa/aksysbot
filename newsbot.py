@@ -22,8 +22,8 @@ from urllib3.util.retry import Retry
 AKSYS_URL = "https://www.aksysgames.com/blog/"
 OTOMATE_URL = "https://www.otomate-p.jp/news/"
 STATE_PATH = Path(__file__).with_name("state.json")
-DATE = re.compile(r"20\\d{2}\\.\\d{2}\\.\\d{2}")
-JP_ENTRY = re.compile(r"(20\\d{2}\\.\\d{2}\\.\\d{2})\\s*(ゲーム|グッズ|お知らせ|イベント)\\s*(.+)", re.S)
+DATE = re.compile(r"20\d{2}\.\d{2}\.\d{2}")
+JP_ENTRY = re.compile(r"(20\d{2}\.\d{2}\.\d{2})\s*(ゲーム|グッズ|お知らせ|イベント)\s*(.+)", re.S)
 LOG = logging.getLogger("nova")
 MAX_POSTS = 8
 
@@ -38,7 +38,7 @@ class News:
 
     @property
     def key(self):
-        raw = "\\n".join([self.source, self.date, self.url, self.original_title or self.title])
+        raw = "\n".join([self.source, self.date, self.url, self.original_title or self.title])
         return hashlib.sha256(raw.encode()).hexdigest()
 
 def clean(text):
@@ -75,7 +75,7 @@ def parse_aksys(html):
         date = ""
         if meta:
             value = meta.get("datetime", "") or clean(meta.get_text(" ", strip=True))
-            match = re.search(r"\\d{4}-\\d{2}-\\d{2}|[A-Z][a-z]{2}\\s+\\d{1,2},\\s*\\d{4}", value)
+            match = re.search(r"\d{4}-\d{2}-\d{2}|[A-Z][a-z]{2}\s+\d{1,2},\s*\d{4}", value)
             if match:
                 try:
                     date = datetime.strptime(match.group(), "%b %d, %Y").date().isoformat() if "," in match.group() else match.group()
@@ -166,7 +166,7 @@ def save_state(path, data):
     data["seen"] = list(dict.fromkeys(data["seen"]))[-3000:]
     data["initialized_sources"] = sorted(set(data["initialized_sources"]))
     temp = path.with_suffix(".tmp")
-    temp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\\n", encoding="utf8")
+    temp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf8")
     temp.replace(path)
 
 def send(session, webhook, item):
