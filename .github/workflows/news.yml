@@ -8,6 +8,11 @@ on:
         required: false
         type: boolean
         default: false
+      backfill_latest:
+        description: One-time post 3 Aksys + 9 Otomate announcements to Discord
+        required: false
+        type: boolean
+        default: false
   schedule:
     - cron: '17 */3 * * *'
 
@@ -42,9 +47,12 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           SEND_TEST_MESSAGE: ${{ inputs.send_test_message || 'false' }}
+          BACKFILL_LATEST: ${{ inputs.backfill_latest || 'false' }}
         run: |
           if [[ "$SEND_TEST_MESSAGE" == "true" ]]; then
             python newsbot.py --test-webhook
+          elif [[ "$BACKFILL_LATEST" == "true" ]]; then
+            python newsbot.py --backfill
           else
             python newsbot.py
           fi
