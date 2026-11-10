@@ -72,5 +72,19 @@ class NewsBotTests(unittest.TestCase):
                 self.assertEqual(newsbot.run(p, "https://discord.com/api/webhooks/example/key", Session()), 1)
             self.assertEqual(json.loads(p.read_text())["initialized_sources"], ["Otomate (Japan)"])
 
+    def test_backfill_posts_once_even_when_already_seen(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "state.json"
+            items = newsbot.parse_aksys(AKSYS) + newsbot.parse_otomate(OTOMATE)
+            p.write_text(json.dumps({"version": 1, "initialized_sources": ["Aksys Games", "Otomate (Japan)"], "seen": [i.key for i in items]}))
+            sender = Session()
+            with patch.object(newsbot, "fetch", side_effect=[AKSYS, OTOMATE]), patch.object(newsbot, "translate", side_effect=lambda i: i), patch.object(newsbot.time, "sleep"):
+                self.assertEqual(newsbot.run_backfill(p, "https://discord.com/api/webhooks/demo", sender, 1, 1), 0)
+            self.assertEqual(len(sender.sent), 2)
+            with patch.object(newsbot, "fetch", side_effect=[AKSYS, OTOMATE]), patch.object(newsbot, "translate", side_effect=lambda i: i), patch.object(newsbot.time, "sleep"):
+                self.assertEqual(newsbot.run_backfill(p, "https://discord.com/api/webhooks/demo", sender, 1, 1), 0)
+            self.assertEqual(len(sender.sent), 2)
+            self.assertEqual(len(json.loads(p.read_text())["backfilled"]), 2)
+
 if __name__ == "__main__":
     unittest.main()
