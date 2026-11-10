@@ -8,8 +8,9 @@ import logging
 import os
 import re
 import sys
+import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
@@ -180,8 +181,18 @@ def send(session, webhook, item):
         "fields": ([{"name": "Original Japanese title", "value": item.original_title[:1000], "inline": False}] if japanese else []) + ([{"name": "Published", "value": item.date, "inline": True}] if item.date else []),
         "footer": {"text": "Machine translated • Japanese release ≠ English localization" if japanese else "Official Aksys Games announcement"},
     }
-    response = session.post(webhook, json={"username": "Nova News Bot", "embeds": [embed], "allowed_mentions": {"parse": []}}, timeout=25)
-    if response.status_code not in range(200, 300):
+    for attempt in range(6):
+        response = session.post(webhook, json={"username": "Nova News Bot", "embeds": [embed], "allowed_mentions": {"parse": []}}, timeout=25)
+        if 200 <= response.status_code < 300:
+            return
+        if response.status_code == 429 and attempt < 5:
+            try:
+                delay = float(response.json().get("retry_after", 2))
+            except (AttributeError, TypeError, ValueError):
+                delay = 2
+            LOG.warning("Discord rate limited us; sleeping %.1f seconds", delay)
+            time.sleep(min(max(delay + 0.5, 1), 30))
+            continue
         raise RuntimeError(f"Discord replied HTTP {response.status_code}")
 
 def run(state_path, webhook, session):
@@ -222,13 +233,45 @@ def run(state_path, webhook, session):
             LOG.error("Failed to post %s: %s", item.source, e)
             errors.append(item.source + " post")
             break
+    data["last_checked_utc"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    data["last_check_errors"] = errors
+    data["last_detected_new_count"] = len(fresh)
     save_state(state_path, data)
     return 1 if errors else 0
+
+
+def run_backfill(state_path, webhook, session, aksys_count=3, otomate_count=9):
+    """One-time archive delivery. Uses separate history from future-news deduplication."""
+    data = read_state(state_path)
+    completed = set(data.get("backfilled", []))
+    sources = [
+        (AKSYS_URL, parse_aksys, aksys_count, "Aksys Games"),
+        (OTOMATE_URL, parse_otomate, otomate_count, "Otomate (Japan)"),
+    ]
+    items_to_post = []
+    for url, parser, amount, label in sources:
+        articles = parser(fetch(session, url))
+        if len(articles) < amount:
+            raise RuntimeError(f"{label}: requested {amount} articles, but parsed only {len(articles)}")
+        items_to_post.extend(sorted(articles, key=lambda x: x.date, reverse=True)[:amount])
+    LOG.info("Backfill selected %d posts, %d previously sent", len(items_to_post), len(completed))
+    for item in items_to_post:
+        if item.key in completed:
+            continue
+        send(session, webhook, translate(item))
+        data.setdefault("backfilled", []).append(item.key)
+        if item.key not in data["seen"]:
+            data["seen"].append(item.key)
+        save_state(state_path, data)
+        LOG.info("Backfill sent: %s - %s", item.source, item.title[:120])
+        time.sleep(1)
+    return 0
 
 def main():
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     parser = argparse.ArgumentParser()
     parser.add_argument("--test-webhook", action="store_true")
+    parser.add_argument("--backfill", action="store_true", help="Post the 3 latest Aksys and 9 latest Otomate stories only once")
     args = parser.parse_args()
     webhook = os.getenv("DISCORD_WEBHOOK_URL", "").strip()
     if not webhook.startswith("https://discord.com/api/webhooks/"):
@@ -241,6 +284,8 @@ def main():
             LOG.error("Discord test returned HTTP %s", r.status_code)
             return 1
         return 0
+    if args.backfill:
+        return run_backfill(STATE_PATH, webhook, session)
     return run(STATE_PATH, webhook, session)
 
 if __name__ == "__main__":
