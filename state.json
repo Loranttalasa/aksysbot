@@ -18,7 +18,8 @@
     "c113663b47fa6b44552150b37de266ec50e72640dd8d05c692abe4546d7a812b",
     "cd1a176f0cfc368a205e0d9c21f7089e3bf1dfdcf3f3f9ddcfd37d18132576be",
     "ebdd360487bfa61dd56dc8dc4e1ff073a5af382292f5292796a9811bd2be6ee0",
-    "55ae5204c3108d320f39ae5dd2e94f89114751907b556652e4951cbdd8fcb006"
+    "55ae5204c3108d320f39ae5dd2e94f89114751907b556652e4951cbdd8fcb006",
+    "c2c0caf4a0ef45bded4826114bf18c29837a223ff475f30fce5919932c952c72"
   ],
   "backfilled": [
     "ca72adf4f53699f8411e87521803712a46fc08abf76fd7bfc59a49ff7ea5b871",
@@ -34,7 +35,7 @@
     "ebdd360487bfa61dd56dc8dc4e1ff073a5af382292f5292796a9811bd2be6ee0",
     "55ae5204c3108d320f39ae5dd2e94f89114751907b556652e4951cbdd8fcb006"
   ],
-  "last_checked_utc": "2026-11-27T01:45:49+00:00",
+  "last_checked_utc": "2026-11-27T12:22:53+00:00",
   "last_check_errors": [],
-  "last_detected_new_count": 0
+  "last_detected_new_count": 1
 }
